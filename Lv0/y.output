@@ -1,0 +1,187 @@
+Grammar
+
+    0 $accept: line_list $end
+
+    1 line_list: line
+    2          | line_list line
+
+    3 line: definition END CR
+
+    4 definition: TYPE VAR
+    5           | TYPE VAR '=' NUM
+    6           | TYPE VAR '=' FLOAT_LIT
+    7           | TYPE VAR '=' CHAR_LIT
+    8           | TYPE VAR '=' STRING_LIT
+    9           | TYPE VAR '=' DOUBLE_LIT
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '=' (61) 5 6 7 8 9
+    error (256)
+    NUM (258) 5
+    VAR (259) 4 5 6 7 8 9
+    CR (260) 3
+    TYPE (261) 4 5 6 7 8 9
+    END (262) 3
+    FLOAT_LIT (263) 6
+    CHAR_LIT (264) 7
+    STRING_LIT (265) 8
+    DOUBLE_LIT (266) 9
+
+
+Nonterminals, with rules where they appear
+
+    $accept (13)
+        on left: 0
+    line_list (14)
+        on left: 1 2
+        on right: 0 2
+    line (15)
+        on left: 3
+        on right: 1 2
+    definition (16)
+        on left: 4 5 6 7 8 9
+        on right: 3
+
+
+State 0
+
+    0 $accept: . line_list $end
+
+    TYPE  shift, and go to state 1
+
+    line_list   go to state 2
+    line        go to state 3
+    definition  go to state 4
+
+
+State 1
+
+    4 definition: TYPE . VAR
+    5           | TYPE . VAR '=' NUM
+    6           | TYPE . VAR '=' FLOAT_LIT
+    7           | TYPE . VAR '=' CHAR_LIT
+    8           | TYPE . VAR '=' STRING_LIT
+    9           | TYPE . VAR '=' DOUBLE_LIT
+
+    VAR  shift, and go to state 5
+
+
+State 2
+
+    0 $accept: line_list . $end
+    2 line_list: line_list . line
+
+    $end  shift, and go to state 6
+    TYPE  shift, and go to state 1
+
+    line        go to state 7
+    definition  go to state 4
+
+
+State 3
+
+    1 line_list: line .
+
+    $default  reduce using rule 1 (line_list)
+
+
+State 4
+
+    3 line: definition . END CR
+
+    END  shift, and go to state 8
+
+
+State 5
+
+    4 definition: TYPE VAR .
+    5           | TYPE VAR . '=' NUM
+    6           | TYPE VAR . '=' FLOAT_LIT
+    7           | TYPE VAR . '=' CHAR_LIT
+    8           | TYPE VAR . '=' STRING_LIT
+    9           | TYPE VAR . '=' DOUBLE_LIT
+
+    '='  shift, and go to state 9
+
+    $default  reduce using rule 4 (definition)
+
+
+State 6
+
+    0 $accept: line_list $end .
+
+    $default  accept
+
+
+State 7
+
+    2 line_list: line_list line .
+
+    $default  reduce using rule 2 (line_list)
+
+
+State 8
+
+    3 line: definition END . CR
+
+    CR  shift, and go to state 10
+
+
+State 9
+
+    5 definition: TYPE VAR '=' . NUM
+    6           | TYPE VAR '=' . FLOAT_LIT
+    7           | TYPE VAR '=' . CHAR_LIT
+    8           | TYPE VAR '=' . STRING_LIT
+    9           | TYPE VAR '=' . DOUBLE_LIT
+
+    NUM         shift, and go to state 11
+    FLOAT_LIT   shift, and go to state 12
+    CHAR_LIT    shift, and go to state 13
+    STRING_LIT  shift, and go to state 14
+    DOUBLE_LIT  shift, and go to state 15
+
+
+State 10
+
+    3 line: definition END CR .
+
+    $default  reduce using rule 3 (line)
+
+
+State 11
+
+    5 definition: TYPE VAR '=' NUM .
+
+    $default  reduce using rule 5 (definition)
+
+
+State 12
+
+    6 definition: TYPE VAR '=' FLOAT_LIT .
+
+    $default  reduce using rule 6 (definition)
+
+
+State 13
+
+    7 definition: TYPE VAR '=' CHAR_LIT .
+
+    $default  reduce using rule 7 (definition)
+
+
+State 14
+
+    8 definition: TYPE VAR '=' STRING_LIT .
+
+    $default  reduce using rule 8 (definition)
+
+
+State 15
+
+    9 definition: TYPE VAR '=' DOUBLE_LIT .
+
+    $default  reduce using rule 9 (definition)

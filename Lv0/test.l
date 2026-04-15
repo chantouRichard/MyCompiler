@@ -1,24 +1,19 @@
+/*test.l*/
 %{
 #include <stdio.h>
+#include "y.tab.h"
+void yyerror(char *);
 %}
-
+NUM [1-9]+[0-9]*|0
 %%
 
-([1-9]+[0-9]*)|[0]	{printf("NUM ");};
-[0-9]+\.[0-9]+  {printf("FLOAT ");};
-[+\-*/]	{printf("SIGN ");};
-\{	{printf("LBRACE ");};
-\}	{printf("RBRACE ");};
-. {}
-
+{NUM}		                return NUM;
+"+"							return ADD;
+"-"							return SUB;
+"*"							return MUL;
+"/"							return DIV;
+[a-zA-Z_$]+[a-zA-Z_$0-9]*	return VAR;
+\n                          return CR;
+[ \t]+                     /* ignore whitespace */;
+.
 %%
-
-int main(int argc, char **argv)
-{
-  yylex();
-  yywrap();
-}
-int yywrap()
-{
-	return 1;
-}
