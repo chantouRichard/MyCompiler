@@ -2,186 +2,518 @@ Grammar
 
     0 $accept: line_list $end
 
-    1 line_list: line
-    2          | line_list line
+    1 line_list: line_list line
+    2          | line
+    3          | line_list dline
+    4          | dline
 
-    3 line: definition END CR
+    5 line: expression CR
 
-    4 definition: TYPE VAR
-    5           | TYPE VAR '=' NUM
-    6           | TYPE VAR '=' FLOAT_LIT
-    7           | TYPE VAR '=' CHAR_LIT
-    8           | TYPE VAR '=' STRING_LIT
-    9           | TYPE VAR '=' DOUBLE_LIT
+    6 expression: term
+    7           | expression ADD term
+    8           | expression SUB term
+
+    9 term: factor
+   10     | term MUL factor
+   11     | term DIV factor
+
+   12 factor: single
+   13       | LP expression RP
+
+   14 single: NUM
+
+   15 dline: d_expression CR
+
+   16 d_expression: d_term
+   17             | d_expression ADD d_term
+   18             | d_expression SUB d_term
+
+   19 d_term: d_factor
+   20       | d_single MUL d_factor
+   21       | d_single DIV d_factor
+
+   22 d_factor: d_single
+   23         | LP d_expression RP
+
+   24 d_single: DNUM
 
 
 Terminals, with rules where they appear
 
     $end (0) 0
-    '=' (61) 5 6 7 8 9
     error (256)
-    NUM (258) 5
-    VAR (259) 4 5 6 7 8 9
-    CR (260) 3
-    TYPE (261) 4 5 6 7 8 9
-    END (262) 3
-    FLOAT_LIT (263) 6
-    CHAR_LIT (264) 7
-    STRING_LIT (265) 8
-    DOUBLE_LIT (266) 9
+    ADD (258) 7 17
+    SUB (259) 8 18
+    MUL (260) 10 20
+    DIV (261) 11 21
+    CR (262) 5 15
+    LP (263) 13 23
+    RP (264) 13 23
+    NUM <inum> (265) 14
+    DNUM <dnum> (266) 24
 
 
 Nonterminals, with rules where they appear
 
-    $accept (13)
+    $accept (12)
         on left: 0
-    line_list (14)
-        on left: 1 2
-        on right: 0 2
-    line (15)
-        on left: 3
+    line_list (13)
+        on left: 1 2 3 4
+        on right: 0 1 3
+    line (14)
+        on left: 5
         on right: 1 2
-    definition (16)
-        on left: 4 5 6 7 8 9
-        on right: 3
+    expression <inum> (15)
+        on left: 6 7 8
+        on right: 5 7 8 13
+    term <inum> (16)
+        on left: 9 10 11
+        on right: 6 7 8 10 11
+    factor <inum> (17)
+        on left: 12 13
+        on right: 9 10 11
+    single <inum> (18)
+        on left: 14
+        on right: 12
+    dline (19)
+        on left: 15
+        on right: 3 4
+    d_expression <dnum> (20)
+        on left: 16 17 18
+        on right: 15 17 18 23
+    d_term <dnum> (21)
+        on left: 19 20 21
+        on right: 16 17 18
+    d_factor <dnum> (22)
+        on left: 22 23
+        on right: 19 20 21
+    d_single <dnum> (23)
+        on left: 24
+        on right: 20 21 22
 
 
 State 0
 
     0 $accept: . line_list $end
 
-    TYPE  shift, and go to state 1
+    LP    shift, and go to state 1
+    NUM   shift, and go to state 2
+    DNUM  shift, and go to state 3
 
-    line_list   go to state 2
-    line        go to state 3
-    definition  go to state 4
+    line_list     go to state 4
+    line          go to state 5
+    expression    go to state 6
+    term          go to state 7
+    factor        go to state 8
+    single        go to state 9
+    dline         go to state 10
+    d_expression  go to state 11
+    d_term        go to state 12
+    d_factor      go to state 13
+    d_single      go to state 14
 
 
 State 1
 
-    4 definition: TYPE . VAR
-    5           | TYPE . VAR '=' NUM
-    6           | TYPE . VAR '=' FLOAT_LIT
-    7           | TYPE . VAR '=' CHAR_LIT
-    8           | TYPE . VAR '=' STRING_LIT
-    9           | TYPE . VAR '=' DOUBLE_LIT
+   13 factor: LP . expression RP
+   23 d_factor: LP . d_expression RP
 
-    VAR  shift, and go to state 5
+    LP    shift, and go to state 1
+    NUM   shift, and go to state 2
+    DNUM  shift, and go to state 3
+
+    expression    go to state 15
+    term          go to state 7
+    factor        go to state 8
+    single        go to state 9
+    d_expression  go to state 16
+    d_term        go to state 12
+    d_factor      go to state 13
+    d_single      go to state 14
 
 
 State 2
 
-    0 $accept: line_list . $end
-    2 line_list: line_list . line
+   14 single: NUM .
 
-    $end  shift, and go to state 6
-    TYPE  shift, and go to state 1
-
-    line        go to state 7
-    definition  go to state 4
+    $default  reduce using rule 14 (single)
 
 
 State 3
 
-    1 line_list: line .
+   24 d_single: DNUM .
 
-    $default  reduce using rule 1 (line_list)
+    $default  reduce using rule 24 (d_single)
 
 
 State 4
 
-    3 line: definition . END CR
+    0 $accept: line_list . $end
+    1 line_list: line_list . line
+    3          | line_list . dline
 
-    END  shift, and go to state 8
+    $end  shift, and go to state 17
+    LP    shift, and go to state 1
+    NUM   shift, and go to state 2
+    DNUM  shift, and go to state 3
+
+    line          go to state 18
+    expression    go to state 6
+    term          go to state 7
+    factor        go to state 8
+    single        go to state 9
+    dline         go to state 19
+    d_expression  go to state 11
+    d_term        go to state 12
+    d_factor      go to state 13
+    d_single      go to state 14
 
 
 State 5
 
-    4 definition: TYPE VAR .
-    5           | TYPE VAR . '=' NUM
-    6           | TYPE VAR . '=' FLOAT_LIT
-    7           | TYPE VAR . '=' CHAR_LIT
-    8           | TYPE VAR . '=' STRING_LIT
-    9           | TYPE VAR . '=' DOUBLE_LIT
+    2 line_list: line .
 
-    '='  shift, and go to state 9
-
-    $default  reduce using rule 4 (definition)
+    $default  reduce using rule 2 (line_list)
 
 
 State 6
+
+    5 line: expression . CR
+    7 expression: expression . ADD term
+    8           | expression . SUB term
+
+    ADD  shift, and go to state 20
+    SUB  shift, and go to state 21
+    CR   shift, and go to state 22
+
+
+State 7
+
+    6 expression: term .
+   10 term: term . MUL factor
+   11     | term . DIV factor
+
+    MUL  shift, and go to state 23
+    DIV  shift, and go to state 24
+
+    $default  reduce using rule 6 (expression)
+
+
+State 8
+
+    9 term: factor .
+
+    $default  reduce using rule 9 (term)
+
+
+State 9
+
+   12 factor: single .
+
+    $default  reduce using rule 12 (factor)
+
+
+State 10
+
+    4 line_list: dline .
+
+    $default  reduce using rule 4 (line_list)
+
+
+State 11
+
+   15 dline: d_expression . CR
+   17 d_expression: d_expression . ADD d_term
+   18             | d_expression . SUB d_term
+
+    ADD  shift, and go to state 25
+    SUB  shift, and go to state 26
+    CR   shift, and go to state 27
+
+
+State 12
+
+   16 d_expression: d_term .
+
+    $default  reduce using rule 16 (d_expression)
+
+
+State 13
+
+   19 d_term: d_factor .
+
+    $default  reduce using rule 19 (d_term)
+
+
+State 14
+
+   20 d_term: d_single . MUL d_factor
+   21       | d_single . DIV d_factor
+   22 d_factor: d_single .
+
+    MUL  shift, and go to state 28
+    DIV  shift, and go to state 29
+
+    $default  reduce using rule 22 (d_factor)
+
+
+State 15
+
+    7 expression: expression . ADD term
+    8           | expression . SUB term
+   13 factor: LP expression . RP
+
+    ADD  shift, and go to state 20
+    SUB  shift, and go to state 21
+    RP   shift, and go to state 30
+
+
+State 16
+
+   17 d_expression: d_expression . ADD d_term
+   18             | d_expression . SUB d_term
+   23 d_factor: LP d_expression . RP
+
+    ADD  shift, and go to state 25
+    SUB  shift, and go to state 26
+    RP   shift, and go to state 31
+
+
+State 17
 
     0 $accept: line_list $end .
 
     $default  accept
 
 
-State 7
+State 18
 
-    2 line_list: line_list line .
+    1 line_list: line_list line .
 
-    $default  reduce using rule 2 (line_list)
-
-
-State 8
-
-    3 line: definition END . CR
-
-    CR  shift, and go to state 10
+    $default  reduce using rule 1 (line_list)
 
 
-State 9
+State 19
 
-    5 definition: TYPE VAR '=' . NUM
-    6           | TYPE VAR '=' . FLOAT_LIT
-    7           | TYPE VAR '=' . CHAR_LIT
-    8           | TYPE VAR '=' . STRING_LIT
-    9           | TYPE VAR '=' . DOUBLE_LIT
+    3 line_list: line_list dline .
 
-    NUM         shift, and go to state 11
-    FLOAT_LIT   shift, and go to state 12
-    CHAR_LIT    shift, and go to state 13
-    STRING_LIT  shift, and go to state 14
-    DOUBLE_LIT  shift, and go to state 15
+    $default  reduce using rule 3 (line_list)
 
 
-State 10
+State 20
 
-    3 line: definition END CR .
+    7 expression: expression ADD . term
 
-    $default  reduce using rule 3 (line)
+    LP   shift, and go to state 32
+    NUM  shift, and go to state 2
 
-
-State 11
-
-    5 definition: TYPE VAR '=' NUM .
-
-    $default  reduce using rule 5 (definition)
+    term    go to state 33
+    factor  go to state 8
+    single  go to state 9
 
 
-State 12
+State 21
 
-    6 definition: TYPE VAR '=' FLOAT_LIT .
+    8 expression: expression SUB . term
 
-    $default  reduce using rule 6 (definition)
+    LP   shift, and go to state 32
+    NUM  shift, and go to state 2
 
-
-State 13
-
-    7 definition: TYPE VAR '=' CHAR_LIT .
-
-    $default  reduce using rule 7 (definition)
+    term    go to state 34
+    factor  go to state 8
+    single  go to state 9
 
 
-State 14
+State 22
 
-    8 definition: TYPE VAR '=' STRING_LIT .
+    5 line: expression CR .
 
-    $default  reduce using rule 8 (definition)
+    $default  reduce using rule 5 (line)
 
 
-State 15
+State 23
 
-    9 definition: TYPE VAR '=' DOUBLE_LIT .
+   10 term: term MUL . factor
 
-    $default  reduce using rule 9 (definition)
+    LP   shift, and go to state 32
+    NUM  shift, and go to state 2
+
+    factor  go to state 35
+    single  go to state 9
+
+
+State 24
+
+   11 term: term DIV . factor
+
+    LP   shift, and go to state 32
+    NUM  shift, and go to state 2
+
+    factor  go to state 36
+    single  go to state 9
+
+
+State 25
+
+   17 d_expression: d_expression ADD . d_term
+
+    LP    shift, and go to state 37
+    DNUM  shift, and go to state 3
+
+    d_term    go to state 38
+    d_factor  go to state 13
+    d_single  go to state 14
+
+
+State 26
+
+   18 d_expression: d_expression SUB . d_term
+
+    LP    shift, and go to state 37
+    DNUM  shift, and go to state 3
+
+    d_term    go to state 39
+    d_factor  go to state 13
+    d_single  go to state 14
+
+
+State 27
+
+   15 dline: d_expression CR .
+
+    $default  reduce using rule 15 (dline)
+
+
+State 28
+
+   20 d_term: d_single MUL . d_factor
+
+    LP    shift, and go to state 37
+    DNUM  shift, and go to state 3
+
+    d_factor  go to state 40
+    d_single  go to state 41
+
+
+State 29
+
+   21 d_term: d_single DIV . d_factor
+
+    LP    shift, and go to state 37
+    DNUM  shift, and go to state 3
+
+    d_factor  go to state 42
+    d_single  go to state 41
+
+
+State 30
+
+   13 factor: LP expression RP .
+
+    $default  reduce using rule 13 (factor)
+
+
+State 31
+
+   23 d_factor: LP d_expression RP .
+
+    $default  reduce using rule 23 (d_factor)
+
+
+State 32
+
+   13 factor: LP . expression RP
+
+    LP   shift, and go to state 32
+    NUM  shift, and go to state 2
+
+    expression  go to state 15
+    term        go to state 7
+    factor      go to state 8
+    single      go to state 9
+
+
+State 33
+
+    7 expression: expression ADD term .
+   10 term: term . MUL factor
+   11     | term . DIV factor
+
+    MUL  shift, and go to state 23
+    DIV  shift, and go to state 24
+
+    $default  reduce using rule 7 (expression)
+
+
+State 34
+
+    8 expression: expression SUB term .
+   10 term: term . MUL factor
+   11     | term . DIV factor
+
+    MUL  shift, and go to state 23
+    DIV  shift, and go to state 24
+
+    $default  reduce using rule 8 (expression)
+
+
+State 35
+
+   10 term: term MUL factor .
+
+    $default  reduce using rule 10 (term)
+
+
+State 36
+
+   11 term: term DIV factor .
+
+    $default  reduce using rule 11 (term)
+
+
+State 37
+
+   23 d_factor: LP . d_expression RP
+
+    LP    shift, and go to state 37
+    DNUM  shift, and go to state 3
+
+    d_expression  go to state 16
+    d_term        go to state 12
+    d_factor      go to state 13
+    d_single      go to state 14
+
+
+State 38
+
+   17 d_expression: d_expression ADD d_term .
+
+    $default  reduce using rule 17 (d_expression)
+
+
+State 39
+
+   18 d_expression: d_expression SUB d_term .
+
+    $default  reduce using rule 18 (d_expression)
+
+
+State 40
+
+   20 d_term: d_single MUL d_factor .
+
+    $default  reduce using rule 20 (d_term)
+
+
+State 41
+
+   22 d_factor: d_single .
+
+    $default  reduce using rule 22 (d_factor)
+
+
+State 42
+
+   21 d_term: d_single DIV d_factor .
+
+    $default  reduce using rule 21 (d_term)
