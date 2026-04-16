@@ -1,0 +1,6 @@
+CompUnit
+  FuncDef: myfunction (int)
+    Block
+      Stmt (return)
+        ReturnStmt
+          Number: 1
