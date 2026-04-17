@@ -1,4 +1,1 @@
-fun @main(): i32 {
-%entry:
-  ret 0
-}
+CompUnit { FuncDef { FuncType { int }, main, Block { ReturnStmt { 0 } } } }
