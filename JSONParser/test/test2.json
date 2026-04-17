@@ -1,0 +1,13 @@
+{
+  "name": "UserName",
+  "age": 20,
+  "skills": ["C++", "Python", "Vue"],
+  "address": {
+    "city": "Wuhan",
+    "zip": 516500
+  },
+  "is_student": true,
+  "null": null,
+  "negative": -1,
+  "UniCode": "这是B\bB"
+}

@@ -1,0 +1,3 @@
+/workspace/JSONParser/build/CMakeFiles/json_parser.dir
+/workspace/JSONParser/build/CMakeFiles/edit_cache.dir
+/workspace/JSONParser/build/CMakeFiles/rebuild_cache.dir
