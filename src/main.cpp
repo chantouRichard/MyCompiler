@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include "ast.h"
+#include "riscv.h"
 
 // 新增：Koopa 头文件
 #include <koopa.h>
@@ -17,7 +18,7 @@ extern FILE *yyin;
 extern int yyparse(unique_ptr<CompUnit> &ast);
 
 // 函数声明
-bool process_koopa_ir(const string &ir_text);
+bool koopa_to_riscv(const string &koopa_ir, const string &output_file);
 bool generate_output(const string &mode, CompUnit *ast, const string &output);
 
 int main(int argc, const char *argv[]) {
@@ -67,14 +68,16 @@ int main(int argc, const char *argv[]) {
 }
 
 /**
- * 处理 Koopa IR 内存形式的函数
- * @param ir_text 文本形式的 Koopa IR
- * @return 处理后的结果（可以扩展为返回错误码等）
+ * 将文本 Koopa IR 转换为 RISC-V 汇编
+ * @param koopa_ir 文本形式的 Koopa IR
+ * @param output_file 输出文件路径
+ * @return 是否成功
  */
-bool process_koopa_ir(const string &ir_text) {
+bool koopa_to_riscv(const string &koopa_ir, const string &output_file) {
     // 1. 解析字符串，得到 Koopa IR 程序
     koopa_program_t program;
-    koopa_error_code_t ret = koopa_parse_from_string(ir_text.c_str(), &program);
+    // printf("koopa_ir.c_str: %s\n", koopa_ir.c_str());
+    koopa_error_code_t ret = koopa_parse_from_string(koopa_ir.c_str(), &program);
     
     if (ret != KOOPA_EC_SUCCESS) {
         cerr << "Error: Failed to parse Koopa IR" << endl;
@@ -87,13 +90,21 @@ bool process_koopa_ir(const string &ir_text) {
     // 3. 将 Koopa IR 程序转换为 raw program
     koopa_raw_program_t raw_program = koopa_build_raw_program(builder, program);
     
-    koopa_delete_program(program);
-    // 4. 处理 raw program
-    // TODO: 在这里添加对 raw_program 的处理
-    // 例如：遍历函数、基本块、指令等
-    // 当前阶段可以暂时留空
+    // 4. 生成 RISC-V 汇编
+    ofstream out_file(output_file);
+    if (!out_file) {
+        cerr << "Error: Cannot create output file: " << output_file << endl;
+        koopa_delete_program(program);
+        koopa_delete_raw_program_builder(builder);
+        return false;
+    }
     
-    // 5. 释放资源（单独处理）
+    RISCVGenerator generator(out_file);
+    generator.generate(raw_program);
+    out_file.close();
+    
+    // 5. 释放资源
+    koopa_delete_program(program);
     koopa_delete_raw_program_builder(builder);
     
     return true;
@@ -119,9 +130,6 @@ bool generate_output(const string &mode, CompUnit *ast, const string &output) {
         // 获取生成的 IR 文本
         string koopa_ir = oss.str();
         
-        // 可选：处理内存形式的 Koopa IR（用于后续优化或验证）
-        // process_koopa_ir(koopa_ir);
-        
         // 写入文件
         ofstream out_file(output);
         if (!out_file) {
@@ -144,6 +152,16 @@ bool generate_output(const string &mode, CompUnit *ast, const string &output) {
         out_file << oss.str();
         out_file.close();
         
+    } else if (mode == "-riscv") {
+        // 1. 先生成 Koopa IR 到字符串流
+        KoopaVisitor koopa_visitor(oss);
+        ast->accept(&koopa_visitor);
+        string koopa_ir = oss.str();
+        
+        // 2. 将 Koopa IR 转换为 RISC-V 汇编
+        if (!koopa_to_riscv(koopa_ir, output)) {
+            return false;
+        }
     } else {
         cerr << "Error: Unsupported mode: " << mode << endl;
         return false;
