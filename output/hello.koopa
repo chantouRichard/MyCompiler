@@ -1,6 +1,4 @@
-CompUnit
-  FuncDef: main (int)
-    Block
-      Stmt (return)
-        ReturnStmt
-          Number: 0
+fun @main(): i32 {
+%entry:
+  ret 0
+}

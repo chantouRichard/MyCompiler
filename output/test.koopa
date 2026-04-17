@@ -1,0 +1,4 @@
+fun @myfunction(): i32 {
+%entry:
+  ret 1
+}

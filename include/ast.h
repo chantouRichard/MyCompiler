@@ -6,19 +6,39 @@
 #include <string>
 #include <iostream>
 
+// ============ 前置声明 ============
+// 告诉编译器这些类存在，具体定义在后面
+class Number;
+class ReturnStmt;
+class Stmt;
+class Block;
+class FuncDef;
+class CompUnit;
+
+/**
+ * Visitor 基类
+ * 为每种节点类型声明一个 visit 方法
+ * 添加新节点时，需要在这里添加对应的虚函数
+ */
+class AstVisitor {
+public:
+    virtual ~AstVisitor() = default;
+    
+    // 为每种节点类型定义 visit 方法
+    virtual void visit(const Number *node) = 0;
+    virtual void visit(const ReturnStmt *node) = 0;
+    virtual void visit(const Stmt *node) = 0;
+    virtual void visit(const Block *node) = 0;
+    virtual void visit(const FuncDef *node) = 0;
+    virtual void visit(const CompUnit *node) = 0;
+};
+
 // AST基类，所有具体的AST节点都会继承
 
 class AstNode {
 public:
     virtual ~AstNode() = default;
-    virtual void print(std::ostream &os, int indent = 0) const = 0;
-};
-
-// 辅助函数：打印缩进
-inline void print_indent(std::ostream &os, int indent) {
-    for (int i = 0; i < indent; ++i) {
-        os << "  ";
-    }
+    virtual void accept(AstVisitor *visitor) const = 0;
 };
 
 // 数字节点
@@ -27,9 +47,8 @@ public:
     int value;
     explicit Number(int val) : value(val) {}
 
-    void print(std::ostream &os, int indent = 0) const override {
-        print_indent(os, indent);
-        os << "Number: " << value << "\n";
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
     }
 };
 
@@ -44,12 +63,8 @@ public:
     explicit ReturnStmt(std::unique_ptr<Number> value) 
         : ret_value(std::move(value)) {}
 
-    void print(std::ostream &os, int indent = 0) const override {
-        print_indent(os, indent);
-        os << "ReturnStmt\n";
-        if (ret_value) {
-            ret_value->print(os, indent + 1);
-        }
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
     }
 };
 
@@ -68,16 +83,8 @@ public:
     
     explicit Stmt(StmtKind k) : kind(k) {}
 
-    void print(std::ostream &os, int indent = 0) const override {
-        print_indent(os, indent);
-        switch (kind) {
-            case StmtKind::RETURN:
-                os << "Stmt (return)\n";
-                if (ret_stmt) {
-                    ret_stmt->print(os, indent + 1);
-                }
-                break;
-        }
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
     }
 };
 
@@ -94,12 +101,8 @@ public:
         statements.push_back(std::move(stmt));
     }
 
-    void print(std::ostream &os, int indent = 0) const override {
-        print_indent(os, indent);
-        os << "Block\n";
-        for (const auto &stmt : statements) {
-            stmt->print(os, indent + 1);
-        }
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
     }
 };
 
@@ -117,17 +120,8 @@ public:
     FuncDef(const std::string& n, std::unique_ptr<Block> b, bool isVoid = false)
         : name(n), body(std::move(b)), is_void(isVoid) {}
 
-    void print(std::ostream &os, int indent = 0) const override {
-        print_indent(os, indent);
-        os << "FuncDef: " << name;
-        if (is_void) {
-            os << " (void)\n";
-        } else {
-            os << " (int)\n";
-        }
-        if (body) {
-            body->print(os, indent + 1);
-        }
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
     }
 };
 
@@ -141,13 +135,122 @@ public:
     explicit CompUnit(std::unique_ptr<FuncDef> def) 
         : func_def(std::move(def)) {}
 
-    void print(std::ostream &os, int indent = 0) const override {
-        print_indent(os, indent);
-        os << "CompUnit\n";
-        if (func_def) {
-            func_def->print(os, indent + 1);
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
+    }
+};
+
+// ============ 具体的 Visitor 实现示例 ============
+
+/**
+ * 打印 Visitor：遍历 AST 并打印结构
+ */
+class PrintVisitor : public AstVisitor {
+private:
+    std::ostream &os;
+    
+public:
+    explicit PrintVisitor(std::ostream &out) : os(out) {}
+    
+    void visit(const Number *node) override {
+        os << node->value;
+    }
+    
+    void visit(const ReturnStmt *node) override {
+        os << "ReturnStmt { ";
+        if (node->ret_value) {
+            node->ret_value->accept(this);
+        }
+        os << " }";
+    }
+    
+    void visit(const Stmt *node) override {
+        switch (node->kind) {
+            case StmtKind::RETURN:
+                if (node->ret_stmt) {
+                    node->ret_stmt->accept(this);
+                }
+                break;
         }
     }
+    
+    void visit(const Block *node) override {
+        os << "Block { ";
+        for (const auto &stmt : node->statements) {
+            stmt->accept(this);
+        }
+        os << " }";
+    }
+    
+    void visit(const FuncDef *node) override {
+        os << "FuncDef { ";
+        os << "FuncType ";
+        if (node->is_void) {
+            os << "{ void }";
+        } else {
+            os << "{ int }";
+        }
+        os <<", "<< node->name;
+        if (node->body) {
+            os << ", ";
+            node->body->accept(this);
+        }
+        os << " }";
+    }
+    
+    void visit(const CompUnit *node) override {
+        os << "CompUnit { ";
+        if (node->func_def) {
+            node->func_def->accept(this);
+        }
+        os << " }\n";
+    }
+};
+
+class KoopaVisitor : public AstVisitor {
+    std::ostream &os;
+public:
+    explicit KoopaVisitor(std::ostream &out) : os(out) {}
+
+    void visit(const Number *node) override {
+        os << node->value;  // 输出数字
+    }
+    
+    void visit(const ReturnStmt *node) override {
+        os << "  ret ";
+        node->ret_value->accept(this);
+        os << "\n";
+    }
+
+    void visit(const Stmt *node) override {
+        switch (node->kind) {
+            case StmtKind::RETURN:
+                if (node->ret_stmt) {
+                    node->ret_stmt->accept(this);
+                }
+                break;
+        }
+    }
+    
+    void visit(const FuncDef *node) override {
+        os << "fun @" << node->name << "(): i32 {\n";
+        node->body->accept(this);
+        os << "}\n";
+    }
+
+    void visit(const Block *node) override {
+        os << "%entry:\n";
+        for (const auto &stmt : node->statements) {
+            stmt->accept(this);
+        }
+    }
+
+    void visit(const CompUnit *node) override {
+        if (node->func_def) {
+            node->func_def->accept(this);
+        }
+    }
+    // ... 其他节点
 };
 
 // ============ 创建节点的辅助函数（可选） ============

@@ -51,7 +51,12 @@ int main(int argc, const char *argv[]) {
   }
   
   // 将 AST 以文本形式写入文件
-  ast->print(out_file);
+  PrintVisitor printer(out_file);
+  KoopaVisitor koopa(out_file);
+  // ast->accept(&printer);
+  // out_file << "\n";
+  ast->accept(&koopa);
+
   out_file.close();
   
   // 可选：同时打印到屏幕

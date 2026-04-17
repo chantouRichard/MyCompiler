@@ -1,3 +1,8 @@
-void myfunction() {
+// 这是单行注释
+/*
+    这是多行注释
+*/
+
+void myfunction2() {
     return 1;
 }

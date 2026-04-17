@@ -1,6 +1,4 @@
-CompUnit
-  FuncDef: myfunction (int)
-    Block
-      Stmt (return)
-        ReturnStmt
-          Number: 1
+fun @myfunction2(): i32 {
+%entry:
+  ret 1
+}
