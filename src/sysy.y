@@ -33,6 +33,8 @@ extern int yylex();
   Block *block;
   Stmt *stmt;
   Number *number;
+  Exp *exp;       // 新增：通用表达式
+  UnaryOp uop;    // 新增：一元运算符类型
 }
 
 // Token 声明
@@ -45,8 +47,10 @@ extern int yylex();
 %type <func_def> FuncDef
 %type <block> Block
 %type <stmt> Stmt
-%type <number> Number
 %type <str_val> FuncType
+
+%type <exp> Exp UnaryExp PrimaryExp  // 这些都属于表达式基类
+%type <uop> UnaryOp                 // 运算符类型
 %%
 
 CompUnit
@@ -88,16 +92,39 @@ Block
   ;
 
 Stmt
-  : RETURN Number ';' {
-    $$ = new Stmt(StmtKind::RETURN);
-    (*$$).ret_stmt = make_unique<ReturnStmt>(unique_ptr<Number>($2));
+  : RETURN Exp ';' {
+    auto ret_node = std::make_unique<ReturnStmt>(std::unique_ptr<Exp>($2));
+    $$ = new Stmt(StmtKind::RETURN, std::move(ret_node));
   }
   ;
 
-Number
-  : INT_CONST {
-    $$ = new Number($1);
+Exp
+  : UnaryExp {
+    $$ = $1;
+  };
+
+PrimaryExp
+  : '(' Exp ')' {
+    $$ = new ParenExp(std::unique_ptr<Exp>($2));
   }
+  | INT_CONST {
+    $$ = new Number($1); // 直接创建 Number (它是 Exp 的子类)
+  }
+  ;
+
+UnaryExp
+  : PrimaryExp {
+    $$ = $1;
+  }
+  | UnaryOp UnaryExp {
+    $$ = new UnaryExpression($1, std::unique_ptr<Exp>($2));
+  }
+  ;
+
+UnaryOp
+  : '+' { $$ = UnaryOp::PLUS; }
+  | '-' { $$ = UnaryOp::MINUS; }
+  | '!' { $$ = UnaryOp::NOT; }
   ;
 
 %%

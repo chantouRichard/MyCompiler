@@ -14,6 +14,9 @@ class Stmt;
 class Block;
 class FuncDef;
 class CompUnit;
+class Exp;
+class ParenExp;
+class UnaryExpression;
 
 /**
  * Visitor 基类
@@ -31,6 +34,8 @@ public:
     virtual void visit(const Block *node) = 0;
     virtual void visit(const FuncDef *node) = 0;
     virtual void visit(const CompUnit *node) = 0;
+    virtual void visit(const ParenExp *node) = 0;
+    virtual void visit(const UnaryExpression *node) = 0;
 };
 
 // AST基类，所有具体的AST节点都会继承
@@ -41,8 +46,14 @@ public:
     virtual void accept(AstVisitor *visitor) const = 0;
 };
 
-// 数字节点
-class Number : public AstNode{
+// 表达式基类
+class Exp : public AstNode {
+public:
+    virtual ~Exp() = default;
+};
+
+// 数字节点（属于 PrimaryExp）
+class Number : public Exp {
 public:
     int value;
     explicit Number(int val) : value(val) {}
@@ -52,16 +63,46 @@ public:
     }
 };
 
+// 括号表达式节点 ( (Exp) )
+class ParenExp : public Exp {
+public:
+    std::unique_ptr<Exp> expr;
+    explicit ParenExp(std::unique_ptr<Exp> e) : expr(std::move(e)) {}
+
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
+    }
+};
+
+enum class UnaryOp {
+    PLUS,   // +
+    MINUS,  // -
+    NOT     // !
+};
+
+class UnaryExpression : public Exp {
+public:
+    UnaryOp op;
+    std::unique_ptr<Exp> operand;
+
+    UnaryExpression(UnaryOp o, std::unique_ptr<Exp> od) 
+        : op(o), operand(std::move(od)) {}
+
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
+    }
+};
+
 /**
  * 返回语句节点
- * 例如: return 5;
+ * 例如: return -(5 + !0);
  */
 class ReturnStmt : public AstNode {
 public:
-    std::unique_ptr<Number> ret_value;
+    std::unique_ptr<Exp> exp; // 现在指向通用的表达式
     
-    explicit ReturnStmt(std::unique_ptr<Number> value) 
-        : ret_value(std::move(value)) {}
+    explicit ReturnStmt(std::unique_ptr<Exp> e) 
+        : exp(std::move(e)) {}
 
     void accept(AstVisitor *visitor) const override {
         visitor->visit(this);
@@ -79,9 +120,11 @@ enum class StmtKind {
 class Stmt : public AstNode {
 public:
     StmtKind kind;
-    std::unique_ptr<ReturnStmt> ret_stmt;  // 当 kind == RETURN 时使用
+    // 使用统一的基类指针，增强扩展性
+    std::unique_ptr<AstNode> stmt_entity; 
     
-    explicit Stmt(StmtKind k) : kind(k) {}
+    explicit Stmt(StmtKind k, std::unique_ptr<AstNode> entity) 
+        : kind(k), stmt_entity(std::move(entity)) {}
 
     void accept(AstVisitor *visitor) const override {
         visitor->visit(this);
@@ -155,11 +198,29 @@ public:
     void visit(const Number *node) override {
         os << node->value;
     }
+
+    void visit(const ParenExp *node) override {
+        os << "ParenExp { ";
+        node->expr->accept(this);
+        os << " }";
+    }
+
+    void visit(const UnaryExpression *node) override {
+        os << "UnaryExpression { op: ";
+        switch(node->op) {
+            case UnaryOp::PLUS:  os << "+"; break;
+            case UnaryOp::MINUS: os << "-"; break;
+            case UnaryOp::NOT:   os << "!"; break;
+        }
+        os << ", operand: ";
+        node->operand->accept(this); // 注意这里是 operand
+        os << " }";
+    }
     
     void visit(const ReturnStmt *node) override {
         os << "ReturnStmt { ";
-        if (node->ret_value) {
-            node->ret_value->accept(this);
+        if (node->exp) {
+            node->exp->accept(this);
         }
         os << " }";
     }
@@ -167,8 +228,8 @@ public:
     void visit(const Stmt *node) override {
         switch (node->kind) {
             case StmtKind::RETURN:
-                if (node->ret_stmt) {
-                    node->ret_stmt->accept(this);
+                if (node->stmt_entity) {
+                    node->stmt_entity->accept(this);
                 }
                 break;
         }
@@ -209,24 +270,63 @@ public:
 
 class KoopaVisitor : public AstVisitor {
     std::ostream &os;
+    mutable int temp_count = 0;
+
+    // 辅助函数：生成并返回下一个临时变量名
+    std::string next_temp() const {
+        return "%" + std::to_string(temp_count++);
+    }
+
+    // 假设我们需要记录上一次表达式计算的结果变量名
+    mutable std::string last_res;
+
 public:
     explicit KoopaVisitor(std::ostream &out) : os(out) {}
 
     void visit(const Number *node) override {
-        os << node->value;  // 输出数字
+        last_res = std::to_string(node->value);
+    }
+
+    void visit(const ParenExp *node) override {
+        // 括号表达式直接处理内部表达式即可
+        node->expr->accept(this);
+    }
+
+    void visit(const UnaryExpression *node) override {
+        // 1. 先递归处理操作数
+        node->operand->accept(this);
+        std::string src = last_res; // 获取操作数的结果（可能是数字，也可能是临时变量）
+
+        // 2. 生成当前运算的目标临时变量
+        std::string dest = next_temp();
+        
+        // 3. 根据运算符输出指令
+        switch (node->op) {
+            case UnaryOp::PLUS:
+                // 正号通常不产生指令，直接传递结果即可
+                // 或者生成一条 add %dest, 0, %src
+                last_res = src;
+                return; 
+            case UnaryOp::MINUS:
+                os << "  " << dest << " = sub 0, " << src << "\n";
+                break;
+            case UnaryOp::NOT:
+                os << "  " << dest << " = eq " << src << ", 0\n";
+                break;
+        }
+        last_res = dest; // 更新最后一次计算的结果为当前的临时变量
     }
     
     void visit(const ReturnStmt *node) override {
-        os << "  ret ";
-        node->ret_value->accept(this);
-        os << "\n";
+        node->exp->accept(this);
+        os << "  ret " << last_res << "\n";
     }
 
     void visit(const Stmt *node) override {
         switch (node->kind) {
             case StmtKind::RETURN:
-                if (node->ret_stmt) {
-                    node->ret_stmt->accept(this);
+                if (node->stmt_entity) {
+                    node->stmt_entity->accept(this);
                 }
                 break;
         }
@@ -260,13 +360,12 @@ inline std::unique_ptr<Number> make_number(int val) {
     return std::make_unique<Number>(val);
 }
 
-inline std::unique_ptr<ReturnStmt> make_return_stmt(std::unique_ptr<Number> val) {
+inline std::unique_ptr<ReturnStmt> make_return_stmt(std::unique_ptr<Exp> val) {
     return std::make_unique<ReturnStmt>(std::move(val));
 }
 
-inline std::unique_ptr<Stmt> make_return_stmt_as_stmt(std::unique_ptr<Number> val) {
-    auto stmt = std::make_unique<Stmt>(StmtKind::RETURN);
-    stmt->ret_stmt = std::make_unique<ReturnStmt>(std::move(val));
+inline std::unique_ptr<Stmt> make_return_stmt_as_stmt(std::unique_ptr<Exp> val) {
+    auto stmt = std::make_unique<Stmt>(StmtKind::RETURN, std::make_unique<ReturnStmt>(std::move(val)));
     return stmt;
 }
 
