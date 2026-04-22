@@ -1,4 +1,6 @@
 # 开启 compile_commands.json 生成
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 cmake_minimum_required(VERSION 3.13)
@@ -21,6 +23,8 @@ else()
   # disable warnings caused by old version of Flex
   add_compile_options(-Wall -Wno-register)
 endif()
+
+add_compile_options(-g -O0)
 
 # options about libraries and includes
 set(LIB_DIR "$ENV{CDE_LIBRARY_PATH}/native" CACHE STRING "directory of libraries")
