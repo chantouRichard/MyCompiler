@@ -49,7 +49,7 @@ extern int yylex();
 %type <stmt> Stmt
 %type <str_val> FuncType
 
-%type <exp> Exp UnaryExp PrimaryExp  // 这些都属于表达式基类
+%type <exp> Exp AddExp MulExp UnaryExp PrimaryExp  // 这些都属于表达式基类
 %type <uop> UnaryOp                 // 运算符类型
 %%
 
@@ -99,16 +99,36 @@ Stmt
   ;
 
 Exp
-  : UnaryExp {
+  : AddExp {
     $$ = $1;
   };
 
-PrimaryExp
-  : '(' Exp ')' {
-    $$ = new ParenExp(std::unique_ptr<Exp>($2));
+AddExp
+  : MulExp {
+    $$ = $1;
   }
-  | INT_CONST {
-    $$ = new Number($1); // 直接创建 Number (它是 Exp 的子类)
+  | AddExp '+' MulExp {
+    // 假设你的 ast.h 中有 BinaryExpression 类
+    // BinaryOp 是一个枚举，包含 ADD, SUB, MUL, DIV, MOD
+    $$ = new BinaryExpression(BinaryOp::ADD, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | AddExp '-' MulExp {
+    $$ = new BinaryExpression(BinaryOp::SUB, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  ;
+
+MulExp
+  : UnaryExp {
+    $$ = $1;
+  }
+  | MulExp '*' UnaryExp {
+    $$ = new BinaryExpression(BinaryOp::MUL, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | MulExp '/' UnaryExp {
+    $$ = new BinaryExpression(BinaryOp::DIV, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | MulExp '%' UnaryExp {
+    $$ = new BinaryExpression(BinaryOp::MOD, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
   }
   ;
 
@@ -118,6 +138,15 @@ UnaryExp
   }
   | UnaryOp UnaryExp {
     $$ = new UnaryExpression($1, std::unique_ptr<Exp>($2));
+  }
+  ;
+
+PrimaryExp
+  : '(' Exp ')' {
+    $$ = new ParenExp(std::unique_ptr<Exp>($2));
+  }
+  | INT_CONST {
+    $$ = new Number($1); // 直接创建 Number (它是 Exp 的子类)
   }
   ;
 

@@ -38,6 +38,9 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 "void"          { return VOID; }
 "return"        { return RETURN; }
 
+"*"             { return '*'; }
+"/"             { return '/'; }
+"%"             { return '%'; }
 "+"             { return '+'; }
 "-"             { return '-'; }
 "!"             { return '!'; }

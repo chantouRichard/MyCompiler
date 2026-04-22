@@ -17,6 +17,7 @@ class CompUnit;
 class Exp;
 class ParenExp;
 class UnaryExpression;
+class BinaryExpression;
 
 /**
  * Visitor 基类
@@ -36,6 +37,7 @@ public:
     virtual void visit(const CompUnit *node) = 0;
     virtual void visit(const ParenExp *node) = 0;
     virtual void visit(const UnaryExpression *node) = 0;
+    virtual void visit(const BinaryExpression *node) = 0;
 };
 
 // AST基类，所有具体的AST节点都会继承
@@ -87,6 +89,28 @@ public:
 
     UnaryExpression(UnaryOp o, std::unique_ptr<Exp> od) 
         : op(o), operand(std::move(od)) {}
+
+    void accept(AstVisitor *visitor) const override {
+        visitor->visit(this);
+    }
+};
+
+enum class BinaryOp {
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD
+};
+
+class BinaryExpression : public Exp {
+public:
+    BinaryOp op;
+    std::unique_ptr<Exp> left;
+    std::unique_ptr<Exp> right;
+
+    BinaryExpression(BinaryOp o, std::unique_ptr<Exp> l, std::unique_ptr<Exp> r)
+        : op(o), left(std::move(l)), right(std::move(r)) {}
 
     void accept(AstVisitor *visitor) const override {
         visitor->visit(this);
@@ -216,6 +240,23 @@ public:
         node->operand->accept(this); // 注意这里是 operand
         os << " }";
     }
+
+    void visit(const BinaryExpression *node) override {
+        os << "BinaryExpression { op: ";
+        switch(node->op) {
+            case BinaryOp::ADD:  os << "+"; break;
+            case BinaryOp::SUB:  os << "-"; break;
+            case BinaryOp::MUL:  os << "*"; break;
+            case BinaryOp::DIV:  os << "/"; break;
+            case BinaryOp::MOD:  os << "%"; break;
+        }
+        os << ", left: ";
+        node->left->accept(this);
+        os << " }";
+        os << ", right: ";
+        node->right->accept(this);
+        os << " }";
+    }
     
     void visit(const ReturnStmt *node) override {
         os << "ReturnStmt { ";
@@ -313,6 +354,39 @@ public:
             case UnaryOp::NOT:
                 os << "  " << dest << " = eq " << src << ", 0\n";
                 break;
+        }
+        last_res = dest; // 更新最后一次计算的结果为当前的临时变量
+    }
+
+    void visit(const BinaryExpression *node) override {
+        // 1. 先递归处理操作数
+        node->left->accept(this);
+        std::string left_val = last_res; // 关键：立即保存左侧结果
+        node->right->accept(this);
+        std::string right_val = last_res; // 保存右侧结果
+
+        // 2. 生成当前运算的目标临时变量
+        std::string dest = next_temp();
+        
+        // 根据 koopa.h，二元操作包含 add, sub, mul, div, mod 等
+        switch (node->op) {
+            case BinaryOp::ADD:
+                os << "  " << dest << " = add " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::SUB:
+                os << "  " << dest << " = sub " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::MUL:
+                os << "  " << dest << " = mul " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::DIV:
+                os << "  " << dest << " = div " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::MOD:
+                os << "  " << dest << " = mod " << left_val << ", " << right_val << "\n";
+                break;
+            // 如果你的二元运算还包含比较运算（如 eq, ne, lt, gt 等）
+            // 可以继续在此扩展
         }
         last_res = dest; // 更新最后一次计算的结果为当前的临时变量
     }

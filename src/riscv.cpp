@@ -142,19 +142,19 @@ const auto &binary = value->kind.data.binary;
     std::string rhs_reg = get_value_src(binary.rhs);
     switch (binary.op) {
         case KOOPA_RBO_ADD:
-            os << "  add a0, t0, t1\n";
+            os << "  add " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         case KOOPA_RBO_SUB:
             os << "  sub " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         case KOOPA_RBO_MUL:
-            os << "  mul a0, t0, t1\n";
+            os << "  mul " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         case KOOPA_RBO_DIV:
-            os << "  div a0, t0, t1\n";
+            os << "  div " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         case KOOPA_RBO_MOD:
-            os << "  rem a0, t0, t1\n";
+            os << "  rem " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         case KOOPA_RBO_EQ:
             os << "  sub " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
@@ -165,10 +165,10 @@ const auto &binary = value->kind.data.binary;
             os << "  snez " << res_reg << ", " << res_reg << "\n";
             break;
         case KOOPA_RBO_LT:
-            os << "  slt a0, t0, t1\n";
+            os << "  slt " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         case KOOPA_RBO_GT:
-            os << "  slt a0, t1, t0\n";
+            os << "  slt " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
         // ... 其他操作符类似实现
         default:
