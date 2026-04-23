@@ -65,12 +65,10 @@ void RISCVGenerator::visit_function(const koopa_raw_function_t &func) {
 void RISCVGenerator::visit_basic_block(const koopa_raw_basic_block_t &bb) {
     // 检查是否需要输出标签
     // 条件：基本块有名称，且名称不是默认的 "entry"，且该基本块被其他指令引用
-    bool need_label = false;
     if (bb->name) {
         std::string label_name = strip_prefix(bb->name);
         // 如果标签名不是 "entry"，或者该基本块有多个前驱，则需要输出标签
         if (label_name != "entry" || bb->used_by.len > 0) {
-            need_label = true;
             os << label_name << ":\n";
         }
     }
@@ -170,7 +168,35 @@ const auto &binary = value->kind.data.binary;
         case KOOPA_RBO_GT:
             os << "  slt " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
             break;
-        // ... 其他操作符类似实现
+        case KOOPA_RBO_LE: {
+            os << "  sgt " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
+            os << "  seqz " << res_reg << ", " << res_reg << "\n";
+            break;
+        }
+        case KOOPA_RBO_GE: {
+            os << "  slt " << res_reg << ", "<< lhs_reg <<", "<< rhs_reg <<"\n";
+            os << "  seqz " << res_reg << ", " << res_reg << "\n";
+            break;
+        }
+        case KOOPA_RBO_AND: { // a && b
+            // 方法：先判断 a != 0，再判断 b != 0，最后 AND
+            std::string temp1 = allocate_reg();
+            std::string temp2 = allocate_reg();
+            
+            os << "  snez " << temp1 << ", " << lhs_reg << "\n";  // temp1 = (a != 0)
+            os << "  snez " << temp2 << ", " << rhs_reg << "\n";  // temp2 = (b != 0)
+            os << "  and " << res_reg << ", " << temp1 << ", " << temp2 << "\n";
+            break;
+        }
+        case KOOPA_RBO_OR: { // a || b
+            std::string temp1 = allocate_reg();
+            std::string temp2 = allocate_reg();
+            
+            os << "  snez " << temp1 << ", " << lhs_reg << "\n";  // temp1 = (a != 0)
+            os << "  snez " << temp2 << ", " << rhs_reg << "\n";  // temp2 = (b != 0)
+            os << "  or " << res_reg << ", " << temp1 << ", " << temp2 << "\n";
+            break;
+        }
         default:
             break;
     }

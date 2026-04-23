@@ -39,6 +39,7 @@ extern int yylex();
 
 // Token 声明
 %token INT VOID RETURN
+%token LE GE EQ NE AND OR
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
@@ -49,7 +50,7 @@ extern int yylex();
 %type <stmt> Stmt
 %type <str_val> FuncType
 
-%type <exp> Exp AddExp MulExp UnaryExp PrimaryExp  // 这些都属于表达式基类
+%type <exp> Exp LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp PrimaryExp  // 这些都属于表达式基类
 %type <uop> UnaryOp                 // 运算符类型
 %%
 
@@ -99,8 +100,52 @@ Stmt
   ;
 
 Exp
+  : LOrExp {
+    $$ = $1;
+  };
+
+LOrExp
+  : LAndExp {
+    $$ = $1;
+  }
+  | LOrExp OR LAndExp {
+    $$ = new BinaryExpression(BinaryOp::OR, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+
+LAndExp
+  : EqExp {
+    $$ = $1;
+  }
+  | LAndExp AND EqExp {
+    $$ = new BinaryExpression(BinaryOp::AND, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+
+EqExp
+  : RelExp {
+    $$ = $1;
+  }
+  | EqExp EQ RelExp {
+    $$ = new BinaryExpression(BinaryOp::EQ, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | EqExp NE RelExp {
+    $$ = new BinaryExpression(BinaryOp::NE, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+
+RelExp
   : AddExp {
     $$ = $1;
+  }
+  | RelExp '<' AddExp {
+    $$ = new BinaryExpression(BinaryOp::LT, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | RelExp '>' AddExp {
+    $$ = new BinaryExpression(BinaryOp::GT, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | RelExp LE AddExp {
+    $$ = new BinaryExpression(BinaryOp::LE, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
+  }
+  | RelExp GE AddExp {
+    $$ = new BinaryExpression(BinaryOp::GE, std::unique_ptr<Exp>($1), std::unique_ptr<Exp>($3));
   };
 
 AddExp

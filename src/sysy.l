@@ -43,7 +43,21 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 "%"             { return '%'; }
 "+"             { return '+'; }
 "-"             { return '-'; }
+
+">="            { return GE; }      // 必须在 ">" 之前
+">"             { return '>'; }
+
+"<="            { return LE; }      // 必须在 "<" 之前
+"<"             { return '<'; }
+
+"=="            { return EQ; }      // 必须在 "=" 之前
+"="             { return '='; }     // 如果有赋值
+
+"!="            { return NE; }      // 必须在 "!" 之前
 "!"             { return '!'; }
+
+"&&"            { return AND; }
+"||"            { return OR; }
 
 "("             { return '('; }
 ")"             { return ')'; }

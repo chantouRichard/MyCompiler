@@ -96,11 +96,26 @@ public:
 };
 
 enum class BinaryOp {
+    // 算术运算符
     ADD,
     SUB,
     MUL,
     DIV,
-    MOD
+    MOD,
+    
+    // 关系运算符 (RelExp)
+    LT,     // <
+    GT,     // >
+    LE,     // <=
+    GE,     // >=
+    
+    // 相等运算符 (EqExp)
+    EQ,     // ==
+    NE,     // !=
+    
+    // 逻辑运算符
+    AND,    // &&
+    OR      // ||
 };
 
 class BinaryExpression : public Exp {
@@ -249,6 +264,14 @@ public:
             case BinaryOp::MUL:  os << "*"; break;
             case BinaryOp::DIV:  os << "/"; break;
             case BinaryOp::MOD:  os << "%"; break;
+            case BinaryOp::LT:   os << "<"; break;
+            case BinaryOp::GT:   os << ">"; break;
+            case BinaryOp::LE:   os << "<="; break;
+            case BinaryOp::GE:   os << ">="; break;
+            case BinaryOp::EQ:   os << "=="; break;
+            case BinaryOp::NE:   os << "!="; break;
+            case BinaryOp::AND:  os << "&&"; break;
+            case BinaryOp::OR:   os << "||"; break;
         }
         os << ", left: ";
         node->left->accept(this);
@@ -384,6 +407,30 @@ public:
                 break;
             case BinaryOp::MOD:
                 os << "  " << dest << " = mod " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::LT:
+                os << "  " << dest << " = lt " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::GT:
+                os << "  " << dest << " = gt " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::LE:
+                os << "  " << dest << " = le " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::GE:
+                os << "  " << dest << " = ge " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::EQ:
+                os << "  " << dest << " = eq " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::NE:
+                os << "  " << dest << " = ne " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::AND:
+                os << "  " << dest << " = and " << left_val << ", " << right_val << "\n";
+                break;
+            case BinaryOp::OR:
+                os << "  " << dest << " = or " << left_val << ", " << right_val << "\n";
                 break;
             // 如果你的二元运算还包含比较运算（如 eq, ne, lt, gt 等）
             // 可以继续在此扩展
